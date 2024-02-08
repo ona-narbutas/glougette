@@ -9,17 +9,15 @@ import (
 
 // TYPES
 type Inventory struct {
-	Brands *[]Brand 					`json:"brands"`
+	Brands map[string]Brand 	`json:"brands"`
 }
 
 type Brand struct {
-	Name string 							`json:"name"`
-	Lines *[]Line 						`json:"lines"`
+	Lines map[string]Line 		`json:"lines"`
 }
 
 type Line struct {
-	Name string 							`json:"name"`
-	Items *[]Item							`json:"items"`
+	Items map[string]Item		`json:"items"`
 }
 
 type Item struct {
@@ -47,7 +45,7 @@ func (i *Item) GetItemQuantity() int {
 
 func (l *Line) GetLineQuantity() int {
 	q := 0
-	for _, i := range *l.Items {
+	for _, i := range l.Items {
 		q += i.GetItemQuantity()
 	}
 	return q
@@ -55,7 +53,7 @@ func (l *Line) GetLineQuantity() int {
 
 func (b *Brand) GetBrandQuantity() int {
 	q := 0
-	for _, l := range *b.Lines {
+	for _, l := range b.Lines {
 		q += l.GetLineQuantity()
 	}
 	return q
@@ -63,14 +61,13 @@ func (b *Brand) GetBrandQuantity() int {
 
 // Add brands
 func (i *Inventory) AddBrand(name string) error {
-	for _, b := range *i.Brands {
-		if b.Name == name {
-			return errors.New("Brand already exists")
-		}
+	_, ok := i.Brands[name]
+	if (ok != false) {
+		return errors.New("Brand already exists")
 	}
-	lines := make([]Line, 0)
-	*i.Brands = append(*i.Brands, Brand{name, &lines})
-	fmt.Println(*i.Brands)
+
+	brand := make(map[string]Line)
+	i.Brands[name] = Brand{brand}
 	return nil
 }
 
@@ -79,8 +76,8 @@ func (i *Inventory) AddBrand(name string) error {
 
 // Create new inventory
 func CreateInventory() *Inventory {
-	brands := make([]Brand, 0)
-	return &Inventory{&brands}
+	brands := make(map[string]Brand)
+	return &Inventory{brands}
 }
 
 // Save current inventory state to json
