@@ -17,7 +17,7 @@ type Brand struct {
 }
 
 type Line struct {
-	Items map[string]Item		`json:"items"`
+	Items map[string]Item			`json:"items"`
 }
 
 type Item struct {
@@ -27,6 +27,7 @@ type Item struct {
 	Description string				`json:"description"`
 	Price float64							`json:"price"`
 	Instances *[]ItemInstance	`json:"instances"`
+	HasNumericSize bool				`json:"hasNumericSize"`
 }
 
 type ItemInstance struct {
@@ -59,15 +60,50 @@ func (b *Brand) GetBrandQuantity() int {
 	return q
 }
 
-// Add brands
+// Add brand
 func (i *Inventory) AddBrand(name string) error {
 	_, ok := i.Brands[name]
-	if (ok != false) {
+	if ok == true {
 		return errors.New("Brand already exists")
 	}
 
 	brand := make(map[string]Line)
 	i.Brands[name] = Brand{brand}
+	return nil
+}
+
+// Add Line
+func (b *Brand) AddLine(name string) error {
+	_, ok := b.Lines[name]
+	if ok == true {
+		return errors.New("Line already exists")
+	}
+
+	line := Line{make(map[string]Item)}
+	b.Lines[name] = line
+	return nil
+}
+
+// Add item type
+func (inv *Inventory) AddItemToInventory(brand string, line string, item Item) error {
+	inv.AddBrand(brand)
+	inv.Brands[brand].addItemToBrand(line, item)
+	return nil
+}
+
+func (b Brand) addItemToBrand(line string, item Item) error {
+	b.AddLine(line)
+	b.Lines[line].addItemToLine(item)
+	return nil
+}
+
+func (l Line) addItemToLine(item Item) error {
+	_, ok := l.Items[item.Name]
+	if ok == true {
+		return errors.New("Item already exists")
+	}
+
+	l.Items[item.Name] = item
 	return nil
 }
 
@@ -82,12 +118,23 @@ func CreateInventory() *Inventory {
 
 // Save current inventory state to json
 func SaveInventoryData(inv Inventory) error {
-	fmt.Println("formatting data", inv)
 	data, err := json.Marshal(inv)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-	fmt.Println("writing data", string(data))
 	return os.WriteFile("data/inventory.json", data, 0644)
+}
+
+func RetrieveInventory() (Inventory, error) {
+	invData, err := os.ReadFile("data/inventory.json")
+	fmt.Println("read data", invData)
+	if err != nil {
+		return Inventory{}, err
+	}
+
+	var inv *Inventory = &Inventory{}
+	if err := json.Unmarshal(invData, inv); err != nil {
+		return Inventory{}, err
+	}
+	return *inv, nil
 }
